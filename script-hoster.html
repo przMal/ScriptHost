@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Script Host - Hospede e Compartilhe Scripts</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #1e272e;
+      color: #f5f6fa;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #485460;
+      padding: 2rem 1rem 1rem 1rem;
+      text-align: center;
+      box-shadow: 0 2px 12px #0004;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.2rem;
+      letter-spacing: 1px;
+    }
+    header p {
+      margin: 0.5em 0 0 0;
+      color: #d2dae2;
+      font-size: 1.1rem;
+    }
+    main {
+      max-width: 680px;
+      margin: 2.5rem auto 2rem auto;
+      background: #2d3436;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px #0002;
+      padding: 2rem 1rem 1.5rem 1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.3em;
+      font-weight: 500;
+      color: #dff9fb;
+    }
+    input, textarea {
+      width: 100%;
+      border-radius: 6px;
+      border: none;
+      padding: 0.75em;
+      margin-bottom: 1.2em;
+      font-size: 1em;
+      background: #222f3e;
+      color: #f5f6fa;
+      box-sizing: border-box;
+      transition: box-shadow 0.2s;
+    }
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #1abc9c77;
+    }
+    button {
+      background: #1abc9c;
+      color: #fff;
+      padding: 0.75em 2em;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.18s;
+      margin-bottom: 1.2em;
+    }
+    button:hover {
+      background: #16a085;
+    }
+    #scripts-list {
+      margin-top: 2.5em;
+    }
+    .script-card {
+      background: #222f3e;
+      border-radius: 7px;
+      margin-bottom: 1.3em;
+      padding: 1em;
+      box-shadow: 0 2px 6px #0002;
+      position: relative;
+    }
+    .script-title {
+      font-size: 1.18em;
+      font-weight: 600;
+      margin-bottom: 0.3em;
+      color: #1abc9c;
+    }
+    .script-desc {
+      font-size: 0.98em;
+      color: #d2dae2;
+      margin-bottom: 0.8em;
+    }
+    pre {
+      background: #1e272e;
+      color: #f5f6fa;
+      padding: 0.75em;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 0.97em;
+      margin: 0 0 0.6em 0;
+    }
+    .actions {
+      display: flex;
+      gap: 1em;
+      margin-top: 0.4em;
+    }
+    .actions button {
+      background: #485460;
+      color: #fff;
+      padding: 0.4em 1.2em;
+      font-size: 0.96em;
+      border-radius: 5px;
+      font-weight: 500;
+      margin: 0;
+      transition: background .15s;
+    }
+    .actions button:hover {
+      background: #1abc9c;
+    }
+    .empty-msg {
+      color: #7ed6df;
+      text-align: center;
+      margin: 2em 0 1em 0;
+    }
+    @media (max-width: 600px) {
+      main {
+        padding: 1em 0.2em;
+      }
+      header h1 {
+        font-size: 1.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Script Host</h1>
+    <p>Hospede, compartilhe e copie seus scripts direto do navegador.</p>
+  </header>
+  <main>
+    <form id="script-form" autocomplete="off">
+      <label for="title">Título do Script*</label>
+      <input type="text" id="title" maxlength="40" required placeholder="Ex: Script de backup automático" />
+      
+      <label for="desc">Descrição (opcional)</label>
+      <input type="text" id="desc" maxlength="100" placeholder="Descreva o que o script faz" />
+      
+      <label for="content">Código do Script*</label>
+      <textarea id="content" required placeholder="Cole ou escreva seu código aqui..."></textarea>
+      
+      <button type="submit">Salvar Script</button>
+    </form>
+    <div id="scripts-list">
+      <div class="empty-msg">Nenhum script salvo até agora.</div>
+    </div>
+  </main>
+  <script>
+    // Helpers para trabalhar com LocalStorage:
+    function getScripts() {
+      try { return JSON.parse(localStorage.getItem('scripts_v1')) || []; }
+      catch { return []; }
+    }
+    function saveScripts(arr) {
+      localStorage.setItem('scripts_v1', JSON.stringify(arr));
+    }
+    // Renderização da lista
+    function renderScripts() {
+      const list = document.getElementById('scripts-list');
+      const scripts = getScripts();
+      if (!scripts.length) {
+        list.innerHTML = '<div class="empty-msg">Nenhum script salvo até agora.</div>';
+        return;
+      }
+      list.innerHTML = '';
+      scripts.forEach((sc, idx) => {
+        const card = document.createElement('div');
+        card.className = 'script-card';
+        card.innerHTML =
+          `<div class="script-title">${sc.title}</div>` +
+          (sc.desc ? `<div class="script-desc">${sc.desc}</div>` : '') +
+          `<pre id="code${idx}">${sc.content.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre>` +
+          `<div class="actions">
+            <button onclick="copyScript(${idx})">Copiar</button>
+            <button onclick="deleteScript(${idx})">Excluir</button>
+          </div>`;
+        list.appendChild(card);
+      });
+    }
+    // Copiar código
+    window.copyScript = function(idx) {
+      const scripts = getScripts();
+      const code = scripts[idx]?.content || '';
+      navigator.clipboard.writeText(code);
+      // Feedback visual
+      const btn = document.querySelectorAll('.actions button')[2*idx];
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar', 1200);
+    };
+    // Excluir script
+    window.deleteScript = function(idx) {
+      if (confirm('Deseja excluir este script?')) {
+        const scripts = getScripts();
+        scripts.splice(idx, 1);
+        saveScripts(scripts);
+        renderScripts();
+      }
+    };
+    // Salvar novo script
+    document.getElementById('script-form').onsubmit = function(e) {
+      e.preventDefault();
+      const title = document.getElementById('title').value.trim();
+      const desc = document.getElementById('desc').value.trim();
+      const content = document.getElementById('content').value.trim();
+      if (!title || !content) return;
+      let scripts = getScripts();
+      scripts.unshift({ title, desc, content });
+      saveScripts(scripts);
+      renderScripts();
+      e.target.reset();
+    };
+    // Inicialização
+    renderScripts();
+  </script>
+</body>
+</html>
